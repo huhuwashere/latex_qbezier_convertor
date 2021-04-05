@@ -1,0 +1,63 @@
+Index: ityconvertor
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#!/bin/sh\n\nexport POSIXLY_CORRECT=yes\nexport LC_NUMERIC=en_US.UTF-8\n\nprint_help(){\n  echo \"Usage: tradelog [-h|--help]\"\n  echo \"       tradelog [LOG...]\"\n  echo \" \"\n  echo \"Simple converter to convert straight \\qbezier to \\put {\\line} in Latex Picture Environment. Highly recommended to use with: https://github.com/Headclass/Latex-Picture-Drawing-Tool/tree/main\"\n  echo \"Warning: Keep in mind that the script will change your original text file - '(' and ',' will be replaced with ':' and ')' will be deleted.\"\n  echo \" \"\n}\n\n\nwhile [ \"$#\" -gt 0 ]; do\n    case \"$1\" in\n\n    -h)\n      print_help\n      exit 0\n      ;;\n\n    --help)\n      print_help\n      exit 0\n      ;;\n    *)\n      SUBOR=\"$1\"\n      shift\n      ;;\n  esac\ndone\n\nsed -i 's/(/:/g' $SUBOR\nsed -i 's/,/:/g' $SUBOR\nsed -i 's/)//g' $SUBOR\n\n#   $1     $2   $3   $4    $5    $6  $7\n#\\qbezier:43:21:117:21:191:21\n#\\git(43, 21)(117, 21)(191, 21)\n#\\put     (43 , 21) {\\line(1,0){148}}    148 = $6 - $2\n\nawk -F ':' '{\n\n    $1 = \"\\put(\"\n    printf $1\n\n    printf $2\n    printf \",\"\n\n    printf $3\n    printf \")\"\n\n    $4 = \"{\\line(1,0){\"\n    printf $4\n\n    $5 = $6 - $2\n    printf $5\n\n    $6 = \"}}\\n\"\n    printf $6\n\n   }'  \"$SUBOR\"
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ityconvertor b/ityconvertor
+--- a/ityconvertor	
++++ b/ityconvertor	
+@@ -32,33 +32,25 @@
+   esac
+ done
+ 
+-sed -i 's/(/:/g' $SUBOR
+-sed -i 's/,/:/g' $SUBOR
+-sed -i 's/)//g' $SUBOR
++SUBOR=$(printf "%b" "$SUBOR" | sed -i 's/(/:/g')
++SUBOR=$(printf "%b" "$SUBOR" | sed -i 's/,/:/g')
++SUBOR=$(printf "%b" "$SUBOR" | sed -i 's/)//g')
+ 
+ #   $1     $2   $3   $4    $5    $6  $7
+-#\qbezier:43:21:117:21:191:21
++#\qbezier: 43:  21:  117:  21:   191:21
+ #\git(43, 21)(117, 21)(191, 21)
+ #\put     (43 , 21) {\line(1,0){148}}    148 = $6 - $2
+ 
+-awk -F ':' '{
+-
+-    $1 = "\put("
+-    printf $1
+-
+-    printf $2
+-    printf ","
+-
+-    printf $3
+-    printf ")"
+-
+-    $4 = "{\line(1,0){"
+-    printf $4
+-
+-    $5 = $6 - $2
+-    printf $5
+-
+-    $6 = "}}\n"
+-    printf $6
+-
+-   }'  "$SUBOR"
+\ No newline at end of file
++SUBOR=$(printf "%b" "$SUBOR" | awk -F ':' '{
++    printf "\put("
++    printf "%s, ", $2
++    printf "%s)", $3
++    len = sqrt(($2)^2 + ($3)^2)
++    xK = $6 - $2
++    xK = (xK > 0) ? xK : -xK
++    yK = $7 - $3
++    yK = (yK > 0) ? yK : -yK
++    printf "{\line(%s, %s)", xK, yK
++    printf "{%s}}", len
++    printf "\n"
++  }')
+\ No newline at end of file

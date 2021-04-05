@@ -1,0 +1,86 @@
+#!/bin/sh
+
+export POSIXLY_CORRECT=yes
+export LC_NUMERIC=en_US.UTF-8
+
+print_help(){
+  echo "Usage: qbezier_convertor [-h|--help]"
+  echo "       qbezier_convertor [filename.tex]"
+  echo " "
+  echo "Simple converter to convert straight \qbezier to \put {\line} in Latex Picture Environment. Highly recommended to use with: https://github.com/Headclass/Latex-Picture-Drawing-Tool/tree/main"
+  echo "The output will be written into \"new_[INPUT_FILENAME]\"."
+  echo " "
+}
+
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+
+    -h)
+      print_help
+      exit 0
+      ;;
+
+    --help)
+      print_help
+      exit 0
+      ;;
+    *)
+      FILENAME=$1
+      SUBOR=$(cat "$1")
+      shift
+      ;;
+  esac
+done
+
+SUBOR=$(printf "%s" "$SUBOR" | awk '{
+
+  if(match($0, "\\qbezier")) {
+    gsub("\(", ":", $0) #40 = (
+    gsub(",", ":", $0)
+    gsub(")", "", $0)
+    gsub(" ", "", $0)
+  }
+
+  printf "%s\n", $0
+
+}')
+
+SUBOR=$(printf "%s" "$SUBOR" | awk -F ':' '{
+
+  if($1 == "\qbezier") {
+
+    printf "\put("
+    printf "%s, ", $2
+    printf "%s)", $3
+
+    xK = $6 - $2
+    yK = $7 - $3
+
+    if(xK == 0){
+      len = (yK > 0) ? yK : -yK;
+    }else{
+      len = (xK > 0) ? xK : -xK;
+    }
+
+    if(yK != 0 && xK % yK == 0){
+      divisor = (yK > 0) ? yK: -yK
+      xK = xK / divisor
+      yK = yK / divisor
+    }else if(xK != 0 && yK % xK == 0){
+      divisor = (xK > 0) ? xK: -xK
+      xK = xK / divisor
+      yK = yK / divisor
+    }
+
+    printf "{\line(%s, %s)", xK, yK
+    printf "{%s}}", len
+    printf "\n"
+
+  }
+  else { 
+    printf "%s\n", $0
+  }
+
+}')
+printf "%s\n" "$SUBOR" > "new_$FILENAME"
